@@ -21,7 +21,7 @@ done | sort -u ))
 for i in ${revs[@]}; do 
 	mkdir -p ${pdir}/${i}
 	(cd ${pdir}/${i}; 
-	prcs checkout -f -r${i} ${package} 
+#	prcs checkout -f -r${i} ${package} 
 	)
 done
 
@@ -33,40 +33,47 @@ for i in ${branches[@]}; do
 done
 
 for i in ${revs[@]}; do 
+	c_info=$(cd /; prcs info -f -r${i} -l ${package})
+
 	if [ ${i} = "0.1" ]; then
 		(
 		cd ${gdir}/0
 		git init 
 		rsync -a ${pdir}/${i}/. .
 		git add .
-		git commit -a -m "${i} init"
+		git commit -a -m "${c_info}"
 		git branch -m master 0
 		)
 		continue
 	fi
 
 	c_branch=$(echo $i | sed -e 's/\.[0-9]\+$//')
-	c_info=$(cd /; prcs info -f -r${i} -l ${package})
-	p_revs=($(echo ${c_info} | grep Parent-Version: | awk '{print $2}' ))
+	p_revs=($(echo "${c_info}" | grep Parent-Version: | awk '{print $2}' ))
 	cd ${gdir}/${c_branch}
 	if [ $(git branch| wc -l ) -eq 0 ] ; then
 		for p in ${p_revs[@]}; do 
 			branch=$(echo $p | sed -e 's/\.[0-9]\+$//')
-			git pull ${gdir}/${branch} ${branch}
+			git pull ${gdir}/${branch} ${branch} || exit 1
 		done
-		git branch -m master ${c_branch}
-		git checkout ${c_branch}
+		git branch -m master ${c_branch} || exit 1
+		git checkout ${c_branch} || exit 1
 		rsync --exclude=.git --delete -a ${pdir}/${i}/. .
 		git add . || exit 1
-		git commit -a -m "${p} -> ${i}"
+		git commit -a -m "${c_info}" || exit 1
 	else
 		for p in ${p_revs[@]}; do 
 			branch=$(echo $p | sed -e 's/\.[0-9]\+$//')
-			git pull ${gdir}/${branch} ${branch}
-			rsync --exclude=.git --delete -a ${pdir}/${i}/. .
-			git add . || exit 1
-			git commit -a -m "${p} -> ${i}"
+			if [ ${c_branch} = ${branch} ]; then
+				continue
+			fi
+			git pull ${gdir}/${branch} ${branch} || true || exit 1
 		done
+		rsync --exclude=.git --delete -a ${pdir}/${i}/. .
+		git add . || (git rm $(git add . 2>&1 |grep ^fatal:|
+			grep 'unable to stat'|awk  '{print $2}'|cut -d: -f1);
+			git add . ) || exit 1 
+
+		git commit -a -m "${c_info}" || exit 1
 	fi
 done
 

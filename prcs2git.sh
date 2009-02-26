@@ -1,5 +1,7 @@
 #!/bin/bash 
 
+set -e
+
 if [ $# -ne 1 ]; then
 	echo Usage: $(basename $0) package
 	exit 1
@@ -35,25 +37,13 @@ done
 
 for i in ${revs[@]}; do 
 	c_info=$(cd /; prcs info -f -r${i} -l ${package})
-
-	if [ ${i} = "xxxx0.1" ]; then
-		(
-		cd ${gdir}/0
-		rsync -a ${pdir}/${i}/. .
-		git add .
-		git commit -a -m "${c_info}"
-		git branch -m master 0
-		)
-		continue
-	fi
-
 	c_branch=$(echo $i | sed -e 's/\.[0-9]\+$//')
 	p_revs=($(echo "${c_info}" | grep Parent-Version: | awk '{print $2}' ))
 	cd ${gdir}/${c_branch}
 
 	for p in ${p_revs[@]}; do 
 		branch=$(echo $p | sed -e 's/\.[0-9]\+$//')
-		git pull ${gdir}/${branch} ${branch} || true || exit 1
+		git pull ${gdir}/${branch} ${branch}
 	done
 	rsync --exclude=.git --delete -a ${pdir}/${i}/. .
 	until git add . ; do 
@@ -62,22 +52,20 @@ for i in ${revs[@]}; do
 			cut -d: -f1)
 	done
 
-	git commit -a -m "${c_info}" || exit 2
+	git commit -a -m "${c_info}"
 
 	if git branch | grep "\* master\$"; then
-		git branch -m master ${c_branch} || exit 3
-		( git branch | grep "\* ${c_branch}\$") || exit 4
+		git branch -m master ${c_branch}
+		( git branch | grep "\* ${c_branch}\$")
 	fi
 done
 
-#mkdir -p ${workdir}/${package}_git
-#cd ${workdir}/${package}_git
 mkdir -p ${basedir}/export/${package}
 cd ${basedir}/export/${package}
 git init
 
 for b in ${branches[@]}; do 
-	git remote add ${b} ${gdir}/${b}
+	git remote add ${b} ${gdir}/${b} 
 	git fetch ${b}
 	git checkout ${b}/${b}
 	git checkout -b ${b}/${b}

@@ -20,9 +20,10 @@ done | sort -u ))
 
 for i in ${revs[@]}; do 
 	mkdir -p ${pdir}/${i}
-	(cd ${pdir}/${i}; 
-	prcs checkout -f -r${i} ${package} 
-	)
+	cd ${pdir}/${i}
+	if [ ! -f ${package}.prj ]; then
+		prcs checkout -f -r${i} ${package} 
+	fi
 done
 
 for i in ${branches[@]}; do 
@@ -56,7 +57,11 @@ for i in ${revs[@]}; do
 			git pull ${gdir}/${branch} ${branch} || true || exit 1
 		done
 		rsync --exclude=.git --delete -a ${pdir}/${i}/. .
-		git add . || exit 1
+		until git add . ; do 
+			git rm $(git add . 2>&1 |grep ^fatal:|
+				grep 'unable to stat'|awk  '{print $2}'|
+				cut -d: -f1)
+		done
 		git commit -a -m "${c_info}" || exit 2
 		git branch -m master ${c_branch} || exit 3
 		( git branch | grep "\* ${c_branch}\$") || exit 4
@@ -66,9 +71,11 @@ for i in ${revs[@]}; do
 			git pull ${gdir}/${branch} ${branch} || true || exit 5
 		done
 		rsync --exclude=.git --delete -a ${pdir}/${i}/. .
-		git add . || (git rm $(git add . 2>&1 |grep ^fatal:|
-			grep 'unable to stat'|awk  '{print $2}'|cut -d: -f1);
-			git add . ) || exit 6
+		until git add . ; do 
+			git rm $(git add . 2>&1 |grep ^fatal:|
+				grep 'unable to stat'|awk  '{print $2}'|
+				cut -d: -f1)
+		done
 
 		git commit -a -m "${c_info}" || exit 7
 	fi

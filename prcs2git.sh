@@ -12,7 +12,7 @@ workdir=${basedir}/${package}
 pdir=${basedir}/prcs/${package}
 gdir=${basedir}/git/${package}
 
-revs=($(prcs info --sort=date ${package} | awk '{print $2}'))
+revs=($(prcs info --sort=date ${package} | grep -v '\*DELETED\*' | awk '{print $2}'))
 
 branches=($(for i in ${revs[@]}; do 
 	echo $i | sed -e 's/\.[0-9]\+$//'
@@ -21,7 +21,7 @@ done | sort -u ))
 for i in ${revs[@]}; do 
 	mkdir -p ${pdir}/${i}
 	(cd ${pdir}/${i}; 
-#	prcs checkout -f -r${i} ${package} 
+	prcs checkout -f -r${i} ${package} 
 	)
 done
 
@@ -53,27 +53,24 @@ for i in ${revs[@]}; do
 	if [ $(git branch| wc -l ) -eq 0 ] ; then
 		for p in ${p_revs[@]}; do 
 			branch=$(echo $p | sed -e 's/\.[0-9]\+$//')
-			git pull ${gdir}/${branch} ${branch} || exit 1
+			git pull ${gdir}/${branch} ${branch} || true || exit 1
 		done
-		git branch -m master ${c_branch} || exit 1
-		git checkout ${c_branch} || exit 1
 		rsync --exclude=.git --delete -a ${pdir}/${i}/. .
 		git add . || exit 1
-		git commit -a -m "${c_info}" || exit 1
+		git commit -a -m "${c_info}" || exit 2
+		git branch -m master ${c_branch} || exit 3
+		( git branch | grep "\* ${c_branch}\$") || exit 4
 	else
 		for p in ${p_revs[@]}; do 
 			branch=$(echo $p | sed -e 's/\.[0-9]\+$//')
-			if [ ${c_branch} = ${branch} ]; then
-				continue
-			fi
-			git pull ${gdir}/${branch} ${branch} || true || exit 1
+			git pull ${gdir}/${branch} ${branch} || true || exit 5
 		done
 		rsync --exclude=.git --delete -a ${pdir}/${i}/. .
 		git add . || (git rm $(git add . 2>&1 |grep ^fatal:|
 			grep 'unable to stat'|awk  '{print $2}'|cut -d: -f1);
-			git add . ) || exit 1 
+			git add . ) || exit 6
 
-		git commit -a -m "${c_info}" || exit 1
+		git commit -a -m "${c_info}" || exit 7
 	fi
 done
 

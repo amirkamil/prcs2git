@@ -10,9 +10,9 @@ fi
 package=$1
 
 basedir=/tmp/p2g
-workdir=${basedir}/${package}
 pdir=${basedir}/prcs/${package}
 gdir=${basedir}/git/${package}
+edir=${basedir}/export/${package}
 
 revs=($(prcs info --sort=date ${package} | grep -v '\*DELETED\*' | awk '{print $2}'))
 
@@ -30,9 +30,8 @@ done
 
 for i in ${branches[@]}; do 
 	mkdir -p ${gdir}/${i}
-	(cd ${gdir}/${i}
+	cd ${gdir}/${i}
 	git init
-	)
 done
 
 for i in ${revs[@]}; do 
@@ -43,7 +42,7 @@ for i in ${revs[@]}; do
 
 	for p in ${p_revs[@]}; do 
 		branch=$(echo $p | sed -e 's/\.[0-9]\+$//')
-		git pull ${gdir}/${branch} ${branch}
+		git pull ${gdir}/${branch} ${branch} || true
 	done
 	rsync --exclude=.git --delete -a ${pdir}/${i}/. .
 	until git add . ; do 
@@ -56,12 +55,11 @@ for i in ${revs[@]}; do
 
 	if git branch | grep "\* master\$"; then
 		git branch -m master ${c_branch}
-		( git branch | grep "\* ${c_branch}\$")
 	fi
 done
 
-mkdir -p ${basedir}/export/${package}
-cd ${basedir}/export/${package}
+mkdir -p ${edir}
+cd ${edir}
 git init
 
 for b in ${branches[@]}; do 

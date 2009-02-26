@@ -51,33 +51,23 @@ for i in ${revs[@]}; do
 	c_branch=$(echo $i | sed -e 's/\.[0-9]\+$//')
 	p_revs=($(echo "${c_info}" | grep Parent-Version: | awk '{print $2}' ))
 	cd ${gdir}/${c_branch}
+
+	for p in ${p_revs[@]}; do 
+		branch=$(echo $p | sed -e 's/\.[0-9]\+$//')
+		git pull ${gdir}/${branch} ${branch} || true || exit 1
+	done
+	rsync --exclude=.git --delete -a ${pdir}/${i}/. .
+	until git add . ; do 
+		git rm $(git add . 2>&1 |grep ^fatal:|
+			grep 'unable to stat'|awk  '{print $2}'|
+			cut -d: -f1)
+	done
+
+	git commit -a -m "${c_info}" || exit 2
+
 	if [ $(git branch| wc -l ) -eq 0 ] ; then
-		for p in ${p_revs[@]}; do 
-			branch=$(echo $p | sed -e 's/\.[0-9]\+$//')
-			git pull ${gdir}/${branch} ${branch} || true || exit 1
-		done
-		rsync --exclude=.git --delete -a ${pdir}/${i}/. .
-		until git add . ; do 
-			git rm $(git add . 2>&1 |grep ^fatal:|
-				grep 'unable to stat'|awk  '{print $2}'|
-				cut -d: -f1)
-		done
-		git commit -a -m "${c_info}" || exit 2
 		git branch -m master ${c_branch} || exit 3
 		( git branch | grep "\* ${c_branch}\$") || exit 4
-	else
-		for p in ${p_revs[@]}; do 
-			branch=$(echo $p | sed -e 's/\.[0-9]\+$//')
-			git pull ${gdir}/${branch} ${branch} || true || exit 5
-		done
-		rsync --exclude=.git --delete -a ${pdir}/${i}/. .
-		until git add . ; do 
-			git rm $(git add . 2>&1 |grep ^fatal:|
-				grep 'unable to stat'|awk  '{print $2}'|
-				cut -d: -f1)
-		done
-
-		git commit -a -m "${c_info}" || exit 7
 	fi
 done
 

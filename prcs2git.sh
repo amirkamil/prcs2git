@@ -36,10 +36,9 @@ done
 for i in ${revs[@]}; do 
 	c_info=$(cd /; prcs info -f -r${i} -l ${package})
 
-	if [ ${i} = "0.1" ]; then
+	if [ ${i} = "xxxx0.1" ]; then
 		(
 		cd ${gdir}/0
-		git init 
 		rsync -a ${pdir}/${i}/. .
 		git add .
 		git commit -a -m "${c_info}"
@@ -65,7 +64,7 @@ for i in ${revs[@]}; do
 
 	git commit -a -m "${c_info}" || exit 2
 
-	if [ $(git branch| wc -l ) -eq 0 ] ; then
+	if git branch | grep "\* master\$"; then
 		git branch -m master ${c_branch} || exit 3
 		( git branch | grep "\* ${c_branch}\$") || exit 4
 	fi

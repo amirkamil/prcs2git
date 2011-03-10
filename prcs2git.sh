@@ -27,7 +27,7 @@ if [ $# -ne 1 ]; then
 	cat <<EOF
 Usage: $(basename $0) project
 
-New Git repository placed at ${edir}project.
+New Git repository is exported at ${edir}project.
 
 prcs2git - Copyright (C) 2009 TANIGUCHI Takaki <takaki@asis.media-as.org>
 This program comes with ABSOLUTELY NO WARRANTY.  This is free software,

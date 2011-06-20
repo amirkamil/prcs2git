@@ -60,10 +60,12 @@ for i in ${revs[@]}; do
 	c_branch_rev=$(echo $i | sed -e 's/^.*\.//')
 	p_revs=($(echo "${c_info}" | grep Parent-Version: | awk '{print $2}' ))
 
+	date=$(echo "${c_info}" | cut -d' ' -f 3-8)
+
 	if [ "${i}" = "0.1" ] ;then
 	    rsync --exclude=.git --delete -ac "${pdir}/0.1/." .
 	    git add .
-	    git commit -a -m "${c_info}"
+	    git commit -a --date="${date}" -m "${c_info}"
 	    git branch -m master prcs_0
 	    continue
 	fi
@@ -87,7 +89,7 @@ for i in ${revs[@]}; do
 
 	git add -u 
 	git add . 
-	git commit -a -m "${c_info}"
+	git commit -a --date="${date}" -m "${c_info}" 
 done
 
 rm -rf ${pdir}

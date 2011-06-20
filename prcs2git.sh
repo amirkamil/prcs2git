@@ -1,4 +1,4 @@
-#!/bin/bash 
+#!/bin/bash -vx
 # prcs2git - convert PRCS repository to Git repository
 # Copyright (C) 2009 TANIGUCHI, Takaki <takaki@asis.media-as.org>
 #
@@ -43,53 +43,48 @@ branches=($(for i in ${revs[@]}; do
 done | sort -u ))
 
 for i in ${revs[@]}; do 
-	mkdir -p ${pdir}/${i}
-	cd ${pdir}/${i}
-	if [ ! -f ${package}.prj ]; then
-		prcs checkout -f -r${i} ${package} 
-	fi
+    mkdir -p ${pdir}/${i}
+    cd ${pdir}/${i}
+    if [ ! -f ${package}.prj ]; then
+	prcs checkout -f -r${i} ${package} 
+    fi
 done
 
-for i in ${branches[@]}; do 
-	mkdir -p ${gdir}/${i}
-	cd ${gdir}/${i}
-	git init
-done
+rm -rf  ${gdir}
+mkdir -p ${gdir}
+cd ${gdir}
+git init
 
 for i in ${revs[@]}; do 
 	c_info=$(cd /; prcs info -f -r${i} -l ${package})
 	c_branch=$(echo $i | sed -e 's/\.[0-9]\+$//')
+	c_branch_rev=$(echo $i | sed -e 's/^.*\.//')
 	p_revs=($(echo "${c_info}" | grep Parent-Version: | awk '{print $2}' ))
-	cd ${gdir}/${c_branch}
+
+	if [ "${i}" = "0.1" ] ;then
+	    rsync --exclude=.git --delete -ac "${pdir}/0.1/." .
+	    git add .
+	    git commit -a -m "${c_info}"
+	    git branch -m master prcs_0
+	    continue
+	fi
+	
+	if [ ${c_branch_rev} = "1" ]; then
+	    p_branch=$(echo "${p_revs[0]}" | sed -e 's/\.[0-9]\+$//')
+	    git checkout "prcs_${p_branch}"
+	    git branch "prcs_${c_branch}"
+	else
+	    git checkout "prcs_${c_branch}"
+	fi
 
 	for p in ${p_revs[@]}; do 
-		branch=$(echo $p | sed -e 's/\.[0-9]\+$//')
-		git pull ${gdir}/${branch} ${branch} || true
-	done
-	rsync --exclude=.git --delete -a ${pdir}/${i}/. .
-	until git add . ; do 
-		git rm $(git add . 2>&1 |grep ^fatal:|
-			grep 'unable to stat'|awk  '{print $2}'|
-			cut -d: -f1)
+	    p_branch=$(echo $p | sed -e 's/\.[0-9]\+$//')
+	    p_branch_rev=$(echo $p | sed -e 's/^.*\.//')
+	    git merge "prcs_${p_branch}" || true
 	done
 
+	rsync --exclude=.git --delete -ac ${pdir}/${i}/. .
+
+	git add . 
 	git commit -a -m "${c_info}"
-
-	if git branch | grep "\* master\$"; then
-		git branch -m master ${c_branch}
-	fi
 done
-
-mkdir -p ${edir}
-cd ${edir}
-git init
-
-for b in ${branches[@]}; do 
-	git remote add ${b} ${gdir}/${b} 
-	git fetch ${b}
-	git checkout ${b}/${b}
-	git checkout -b ${b}/${b}
-	git branch -m ${b}/${b} prcs_${b}
-	git remote rm ${b}
-done
-

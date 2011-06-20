@@ -79,11 +79,14 @@ for i in ${revs[@]}; do
 	    p_branch=$(echo $p | sed -e 's/\.[0-9]\+$//')
 	    p_branch_rev=$(echo $p | sed -e 's/^.*\.//')
 	    git merge "prcs_${p_branch}" || true
+	    git add -u 
+	    git add . 
 	done
 
 	rsync --exclude=.git --delete -ac ${pdir}/${i}/. .
 
 	git add -u 
+	git add . 
 	git commit -a -m "${c_info}"
 done
 

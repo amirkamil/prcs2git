@@ -66,21 +66,21 @@ for i in ${revs[@]}; do
 	    rsync --exclude=.git --delete -ac "${pdir}/0.1/." .
 	    git add .
 	    git commit -a --date="${date}" -m "${c_info}"
-	    git branch -m master prcs_0
+	    git branch -m master 0
 	    continue
 	fi
 	
 	if [ ${c_branch_rev} = "1" ]; then
 	    p_branch=$(echo "${p_revs[0]}" | sed -e 's/\.[0-9]\+$//')
-	    git checkout "prcs_${p_branch}"
-	    git branch "prcs_${c_branch}"
+	    git checkout "${p_branch}"
+	    git branch "${c_branch}"
 	fi
-	git checkout "prcs_${c_branch}"
+	git checkout "${c_branch}"
 
 	for p in ${p_revs[@]}; do 
 	    p_branch=$(echo $p | sed -e 's/\.[0-9]\+$//')
 	    p_branch_rev=$(echo $p | sed -e 's/^.*\.//')
-	    git merge "prcs_${p_branch}" || true
+	    git merge "${p_branch}" || true
 	    git add -u 
 	    git add . 
 	done

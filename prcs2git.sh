@@ -1,4 +1,4 @@
-#!/bin/bash -vx
+#!/bin/bash 
 # prcs2git - convert PRCS repository to Git repository
 # Copyright (C) 2009 TANIGUCHI, Takaki <takaki@asis.media-as.org>
 #
@@ -21,13 +21,12 @@ package=$1
 basedir=/tmp/prcs2git
 pdir=${basedir}/prcs/${package}
 gdir=${basedir}/git/${package}
-edir=${basedir}/export/${package}
 
 if [ $# -ne 1 ]; then
 	cat <<EOF
 Usage: $(basename $0) project
 
-New Git repository is exported at ${edir}project.
+New Git repository is exported at ${gdir}project.
 
 prcs2git - Copyright (C) 2009 TANIGUCHI Takaki <takaki@asis.media-as.org>
 This program comes with ABSOLUTELY NO WARRANTY.  This is free software,
@@ -73,9 +72,8 @@ for i in ${revs[@]}; do
 	    p_branch=$(echo "${p_revs[0]}" | sed -e 's/\.[0-9]\+$//')
 	    git checkout "prcs_${p_branch}"
 	    git branch "prcs_${c_branch}"
-	else
-	    git checkout "prcs_${c_branch}"
 	fi
+	git checkout "prcs_${c_branch}"
 
 	for p in ${p_revs[@]}; do 
 	    p_branch=$(echo $p | sed -e 's/\.[0-9]\+$//')
@@ -85,6 +83,8 @@ for i in ${revs[@]}; do
 
 	rsync --exclude=.git --delete -ac ${pdir}/${i}/. .
 
-	git add . 
+	git add -u 
 	git commit -a -m "${c_info}"
 done
+
+rm -rf ${pdir}

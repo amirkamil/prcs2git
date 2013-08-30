@@ -18,7 +18,7 @@
 set -e
 
 package=$1
-server=$2
+domain=$2
 basedir=/tmp/prcs2git
 pdir=${basedir}/prcs/${package}
 gdir=${basedir}/git/${package}
@@ -26,12 +26,12 @@ ddir=${basedir}/done/${package}
 
 if [ $# -lt 1 ]; then
 	cat <<EOF
-Usage: $(basename $0) project [email_server]
+Usage: $(basename $0) project [email_domain]
 
 New Git repository is exported at ${gdir}project.
 
-If email server is provided, then a prcs user is converted to a git author
-as user@email_server.
+If email domain is provided, then a prcs user is converted to a git author
+as user@email_domain.
 
 prcs2git - Copyright (C) 2009 TANIGUCHI Takaki <takaki@asis.media-as.org>
 This program comes with ABSOLUTELY NO WARRANTY.  This is free software,
@@ -73,7 +73,7 @@ for i in ${revs[@]}; do
 	c_info_lite=$(cd /; prcs info -r${i} ${package} | tr -d '\n')
 	date=$(echo "${c_info_lite}" | cut -d' ' -f 3-8)
 	auth=$(echo "${c_info_lite}" | cut -d' ' -f 10)
-	full_auth="${auth} <${auth}@${server}>"
+	full_auth="${auth} <${auth}@${domain}>"
 
 	if [ ${first} = 1 ]; then
 	    rsync --exclude=.git --delete -ac "${pdir}/${i}/." .
@@ -105,7 +105,7 @@ for i in ${revs[@]}; do
 
 	git add -u 
 	git add . 
-	if [ -n "${server}" ]; then
+	if [ -n "${domain}" ]; then
 	    git commit -a --date="${date}" --author="${full_auth}" -m "${c_info}"
 	else
 	    git commit -a --date="${date}" -m "${c_info}"
